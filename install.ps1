@@ -1,8 +1,7 @@
 # GCC Auto Setup bootstrapper
-# After publishing this repository, replace YOUR-USERNAME below with your GitHub username.
 
 $ErrorActionPreference = "Stop"
-$repoRaw = "https://raw.githubusercontent.com/YOUR-USERNAME/gcc-auto-setup/main"
+$repoRaw = "https://raw.githubusercontent.com/iabhnv19/gcc-auto-setup/main"
 $installDir = Join-Path $HOME ".gcc-auto-setup"
 $mainScript = Join-Path $installDir "gccup.ps1"
 $profilePath = $PROFILE
