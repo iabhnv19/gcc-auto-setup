@@ -1,50 +1,69 @@
 # GCC Auto Setup bootstrapper
-
 $ErrorActionPreference = "Stop"
-$repoRaw = "https://raw.githubusercontent.com/iabhnv19/gcc-auto-setup/main"
-$installDir = Join-Path $HOME ".gcc-auto-setup"
+$repoRaw    = "https://raw.githubusercontent.com/iabhnv19/gcc-auto-setup/main"
+$installDir = Join-Path $env:LOCALAPPDATA "GccAutoSetup"
 $mainScript = Join-Path $installDir "gccup.ps1"
-$profilePath = $PROFILE
 
 Write-Host ""
 Write-Host "  GCC Auto Setup - Bootstrapper" -ForegroundColor Yellow
-Write-Host "  Installing the personal command..." -ForegroundColor Cyan
+Write-Host "  Installing the 'gccup' command..." -ForegroundColor Cyan
 
+# older Windows PowerShell needs TLS 1.2 for GitHub
+[Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+# execution policy (so scripts never get blocked)
+try {
+    $current = Get-ExecutionPolicy -Scope CurrentUser
+    if ($current -in @("Restricted", "AllSigned", "Undefined")) {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
+        Write-Host "  Execution policy set to RemoteSigned (current user)." -ForegroundColor DarkGray
+    }
+} catch {
+    # can fail if Group Policy controls it; the shim below bypasses policy anyway
+    Write-Host "  Note: couldn't change execution policy (managed by system). Continuing." -ForegroundColor DarkGray
+}
+
+# remove leftovers from the old profile-based installer
+$oldProfiles = @(
+    $PROFILE,
+    $PROFILE.CurrentUserAllHosts,
+    (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "WindowsPowerShell\Microsoft.PowerShell_profile.ps1"),
+    (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "PowerShell\Microsoft.PowerShell_profile.ps1")
+) | Where-Object { $_ } | Select-Object -Unique
+
+foreach ($pf in $oldProfiles) {
+    try {
+        if (Test-Path $pf) {
+            $txt = Get-Content -Path $pf -Raw -ErrorAction Stop
+            if ($txt -and $txt.Contains("# >>> GCC Auto Setup >>>")) {
+                $clean = [regex]::Replace($txt, "(?s)\r?\n?# >>> GCC Auto Setup >>>.*?# <<< GCC Auto Setup <<<\r?\n?", "")
+                Set-Content -Path $pf -Value $clean -Encoding utf8
+            }
+        }
+    } catch { } 
+}
+$oldDir = Join-Path $HOME ".gcc-auto-setup"
+if (Test-Path $oldDir) { Remove-Item $oldDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+# download main script 
 New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-Invoke-WebRequest -Uri "$repoRaw/gccup.ps1" -OutFile $mainScript
+Invoke-WebRequest -Uri "$repoRaw/gccup.ps1" -OutFile $mainScript -UseBasicParsing
 
-$profileDir = Split-Path -Parent $profilePath
-if (-not (Test-Path $profileDir)) {
-    New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-}
-if (-not (Test-Path $profilePath)) {
-    New-Item -ItemType File -Path $profilePath -Force | Out-Null
-}
+# shim so "gccup" works in any terminal, ignoring policy
+$shim = '@powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0gccup.ps1" %*'
+Set-Content -Path (Join-Path $installDir "gccup.cmd") -Value $shim -Encoding Ascii
 
-$markerStart = "# >>> GCC Auto Setup >>>"
-$markerEnd = "# <<< GCC Auto Setup <<<"
-$profileText = Get-Content -Path $profilePath -Raw -ErrorAction SilentlyContinue
-if ($null -eq $profileText) { $profileText = "" }
-
-$block = @"
-$markerStart
-function gccup {
-    & "`$HOME\.gcc-auto-setup\gccup.ps1" @args
+# add to User PATH 
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$entries  = @(($userPath -split ";") | Where-Object { $_.Trim() -ne "" })
+if ($entries -notcontains $installDir) {
+    [Environment]::SetEnvironmentVariable("Path", (($entries + $installDir) -join ";"), "User")
 }
-$markerEnd
-"@
-
-if ($profileText.Contains($markerStart) -and $profileText.Contains($markerEnd)) {
-    $pattern = "(?s)# >>> GCC Auto Setup >>>.*?# <<< GCC Auto Setup <<<"
-    $profileText = [regex]::Replace($profileText, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block.TrimEnd() })
-} else {
-    if ($profileText.Length -gt 0 -and -not $profileText.EndsWith("`n")) { $profileText += "`r`n" }
-    $profileText += "`r`n$block`r`n"
-}
-Set-Content -Path $profilePath -Value $profileText -Encoding utf8
+if (($env:Path -split ";") -notcontains $installDir) { $env:Path += ";$installDir" }
 
 Write-Host ""
 Write-Host "Installed successfully." -ForegroundColor Green
-Write-Host "Open a new PowerShell window and type: gccup" -ForegroundColor Cyan
-Write-Host "You can also run it now:" -ForegroundColor DarkGray
-& ([scriptblock]::Create((Get-Content -Path $mainScript -Raw))) @args
+Write-Host "In a NEW terminal (as Administrator) type: gccup" -ForegroundColor Cyan
+Write-Host "Running it now..." -ForegroundColor DarkGray
+& powershell -NoProfile -ExecutionPolicy Bypass -File $mainScript
