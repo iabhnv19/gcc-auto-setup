@@ -15,24 +15,6 @@ Installs **GCC & G++** (via MSYS2 UCRT64), fixes your **PATH**, cleans out old *
 
 ---
 
-##  Table of Contents
-
-- [Why this exists](#-why-this-exists)
-- [Quick start](#-quick-start)
-- [What it does](#-what-it-does)
-- [Usage](#-usage)
-- [Test your setup](#-test-your-setup)
-- [What gets installed where](#-what-gets-installed-where)
-- [How it works](#-how-it-works)
-- [Troubleshooting](#-troubleshooting)
-- [FAQ](#-faq)
-- [Uninstall](#-uninstall)
-- [Security](#-security)
-- [Repository structure](#-repository-structure)
-- [License & author](#-license--author)
-
----
-
 ##  Why this exists
 
 Setting up GCC on Windows is a rite of passage nobody enjoys: download MinGW, hunt for the right folder, edit PATH by hand, restart, realise it's the wrong version, repeat.
