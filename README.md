@@ -303,9 +303,29 @@ gcc-auto-setup/
 
 Released under the [MIT License](LICENSE).
 
+## Developer
+
+Developed By 
 <div align="center">
 
-**Made with ❤️ and PowerShell by [Abhinav](https://github.com/iabhnv19)**
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/iabhnv19">
+        <img src="https://github.com/iabhnv19.png" width="80" height="80" alt="Abhinav's GitHub profile picture" />
+        <br />
+        <strong>Abhinav</strong>
+        <br />
+        @iabhnv19
+      </a>
+    </td>
+  </tr>
+</table>
+</div>
+
+<div align="center">
+
+**Made with ❤️ and PowerShell.**
 
  If this saved you time, consider starring the repo!
 
